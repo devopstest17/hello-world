@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation Sample Template for CFN Init
+Mapping:
+RegionMap:
+    us-east-1:
+        AMI: "ami-11cd9996e"
+    us-east-2:
+        AMI: " "
+    us-west-1:
+        AMI: ""
+    us-west-2:
+        AMI: ""
+parameters:
+    ProjectName:
+        Type: String
+        Default: daas
+    AWSRegion:
+        Type: string
+        AllowedValues:
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+        Deafult: "us-east-1"
+    EnvType:
+        Type: String
+        AllowedValues:
+          - prod
+          - dev
+          - test
+    Default: "Prod"
+    ConstrainDescription: must specify prod, dev or test.
+    
+    VPC:
+        Type: Aws::EC2::VPC::Id
+        Default: vpc-952aeeef
+    HostedZoneName:
+        Type: String
+        Default: daas.cmscloud.local.
+    VPNPrivateSG:
+        Type: AWS::EC2::SecurityGroup::Id
+        Default: sg-b3bc13f9
+        Description: default ro project's automated vpn-private group
+    SCRAccessSG:
+        Type: AWS::EC2::SecurityGroup::Id
+        Default: sg-28b51a62
+        Description: default to project's automated crs-access group
+    GithubUN:
+        Type: String
+        Deafult: 'SJGC'
+        Dedcription: Username for Github
+    GithubBranch:
+        Type: String
+        Deafult: master
+    GithubRepo:
+        Type: string
+        Default: 'github.cms.gov/SJGC/devops-mgmt.git'
+        Description: repo where the devops mgmt framework is stored
+    CreateNexus:
+        Type: string
+        AllowedValues: [true, false]
+        Deafult: true
+        Description: conditional for Nexus EC2 creation
+    CreateSonar:
+        Type: string
+        AllowedValues: [true, false ]
+        Deafult: true
+        Description: conditional for Sonar EC2 creation
+    JenkinsAZ:
+        Type: String
+        Default: "us-east-1a"
+        AllowedValues: [us-east-1a, us-east-1b, us-east-1c, us-east-1d, us-east-1f, us-east-2a, us-east-2b, us-east-2c]
+    JenkinsSubnetId:
+        Type: AWS::EC2::Subnet::Id
+        Default: subnet-7ab20326
+    JenkinsKey:
+        Type: AWS:EC2:KeyPair:KeyName
+        Default: daas-jenkins-master-key
+    JenkinsKmsId:
+        Type: String
+        Default: ---------------------------------------------------------------------
+        Description: Encryption key used to secure the parameter stored
+    JenkinsEBSCreation:
+        Type: String
+        AllowedValues: [ true, false]
+        Default: false
+        Description: Conditional for jenkins EBS creation
+    JenkinsEFSCreation:
+        Type: String
+        AllowedValues: [true, false]
+        Default: false
+        Description: conditional for jenkins EFS creation
+    JenkinsVolumeSize:
+        Type: Number
+        MinValue: 1
+        MaxValue: 200
+        Default: 3
+        NexusAZ:
+        Type: String
+        Default: "us-east-1a"
+        AllowedValues: [us-east-1a, us-east-1b, us-east-1c, us-east-1d, us-east-1f, us-east-2a, us-east-2b, us-east-2c]
+    NexusSubnetId:
+        Type: AWS::Ec2::Subnet::Id
+        Default: subnet-7ab20326
+    NexysKey:
+        Type: AWS::EC2::KeyPair::KeyName
+        Default: daas-jenkins-deploy-key
+    SonarAZ:
+        Type: String
+        Default: "us-east-1a"
+        AllowedValues: [us-east-1a, us-east-1b, us-east-1c, us-east-1d, us-east-1f, us-east-2a, us-east-2b, us-east-2c]
+    SonarSubnetId:
+        Type: AWS::EC2::SubNet::Id
+        Default: subnet-7ab20326
+    SonarKey:
+    Type: AWS::EC@::KeyPair::KeyName
+    Default: daas-jenkins-deploy-key
+
+Conditions:
+CreateProdResources: !Equals [ !Ref EnvType, prod ]
+CreateDevResources: !Equals [ !Ref EnvType, dev ]
+CreateNexus: !Equals [ !Ref CreateSonar, true ]
+CreateSonar: !Equals [ !Ref CreateSonar, true ]
+CreateJenkinsEFS: !Equals [ !Ref JenkinsEFSCreation, true ]
+CreateJenkinsEBS: ! Equals [ !Ref JenkinsEBSCreation, true ]
+
+
+Resources:
+    JenkinsEBS:
+        Type: AWS::EC2::Volume
+        Condition: CreateJenkinsEFS
+        Properties:
+            AvailabilityZone: !Ref JenkinsAZ
+            Size: !Ref JenkinsVolumeSize
+        Tags:
+        - Key: Name
+          Value: !Sub "devops-mgmt-${ProjectName} -jenkins-ebs"
+        
+    JenkinsMountPoint:
+        Type: AWS::EC2::VolumeAttachment 
+        Conditino: CreateJenminsEFS
+        Properties:
+        InstanceID: !Ref Jenkins
+        VolumeID: !Ref JenminsEBS
+        Device: /dev/sdhJenkinsEBS:
+        Type: AWS::EC2::Volume
+        Condition: CreateJenkinsEFS
+        Properties:
+            AvailabilityZone: !Ref JenkinsAZ
+            Size: !Ref JenkinsVolumeSize
+        Tags:
+        - Key: Name
+          Value: !Sub "devops-mgmt-${ProjectName} -jenkins-ebs"
+        
+    JenkinsMountPoint:
+        Type: AWS::EC2::VolumeAttachment 
+        Conditino: CreateJenminsEFS
+        Properties:
+        InstanceID: !Ref Jenkins
+        VolumeID: !Ref JenminsEBS
+        Device: /dev/sdh
